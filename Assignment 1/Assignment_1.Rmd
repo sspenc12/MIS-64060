@@ -1,0 +1,145 @@
+---
+title: "MIS-64060 Assignment 1"
+author: "Steve Spence"
+date: "9/4/2019"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Assignment #1 Objectives:
+
+1. Download a dataset from the web. You may use any source, but specify the source in your code. Also ensure that the data has a mix of quantitative and qualitative (categorical) variables.
+2. Import the dataset into R
+3. Print out descriptive statistics for a selection of quantitative and categorical variables.
+4. Transform at least one variable. It doesn't matter what the transformation is.
+5. Plot at least one quantitative variable, and one scatterplot
+6. Upload your R program, and any associated datafiles to your git account. Remember to create a separate repository for this class.
+7. Paste the address to your repository in the answer box here in BB.
+
+***
+
+## Objective #1:
+
+Downloaded CSV data set from Kaggle website. Source claims to have captured all AirBnb data related to New York city listings since 2008. Link to data set is shown below:
+
+https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data/downloads/new-york-city-airbnb-open-data.zip/3
+
+***
+
+## Objective #2:
+
+```{r}
+
+# Read CSV file in from directory
+
+raw_data <- read.csv("~/Desktop/M.S. Business Analytics/3. Fall - 2019/MIS-64060 Fundamentals of Machine Learning/Assignment 1/Assignment 1 Data -- AB_NYC_2019.csv")
+
+```
+
+The result of this objective was a comma separate value (csv) dataset being imported into our R environment as a data frame named "raw_data" for further analysis.
+
+***
+
+## Objective #3:
+
+```{r}
+
+# Returns the structure of the data frame and all variables captured in the data set.
+
+str(raw_data)
+
+# Return the descriptive statistics for all the variables within the dataset
+
+summary(raw_data)
+
+```
+
+From the "str" command we get an idea of the structure of the data set. There are sixteen total variables in the data frame with the following data types:
+
+Seven (7) integer variables: id, host_id, price, minimum_nights, number_of_reviews, calculcated_host_listings_count, and availability_365.
+
+Six (6) factor variables: name, host_name, neighbourhood_group, neighbourhood, room_type, and last_review
+
+Three (3) numeric variables: latitude, longitude, and reviews_per_month
+
+From the "summary" command we get a list of descriptive statistics for the variables in the data set. In this case we can see the values typically displayed on a boxplot (quartiles, median, min, and max) plus the mean value of numeric variables and count for catergorical variables.
+
+***
+
+## Objective #4:
+
+For the transformation objective, I decided to transform the "price" variable by normalizing it via the z-transformation, and storing those values in a new variable named "price_normalized".
+
+```{r}
+
+# Transform the "price" variable by normalizing values via the z-transformation method and storing in a new variable named "price_normalized".
+
+raw_data$price_normalized <- (raw_data$price - mean(raw_data$price)) / sd(raw_data$price)
+
+summary(raw_data$price)
+summary(raw_data$price_normalized)
+
+```
+
+From the comparison of the two variables summary statistics, we can see that the range has now changed from 0 to 10,000 (original data) to -0.63593 to 41.00399 (z-transformation) based on the calculation in the previously shown R script.
+
+***
+
+## Objective #5:
+
+The first plot for a quantitative variable is a barplot via ggplot2. This barplot takes the average listing price for each of the five "neighbourhood_group" locations called out in the data set. Once it has the average value for each group, it will display the values in descending order by average price.
+
+```{r}
+
+# Ensure ggplot2 package is installed prior to executing code.
+
+require(ggplot2)
+
+# Create a bar plot of "neighbourhood_group" and "price" using the average price for each group and returning the x-axis in descending order by average price.
+
+ggplot(raw_data, aes(x = reorder(neighbourhood_group, -price), price)) +
+  geom_bar(stat = "summary", fun.y = "mean") +
+  ggtitle("Average Price for NYC AirBnb Listings by Neighbourhood Group") +
+  xlab("Neighbourhood Group") +
+  ylab("Average Price (USD)")
+
+```
+
+As shown in the barplot, it is clear that Manhattan has a significantly higher average price per listing than the other four groups. This makes sense in real-world verification, since it is the more sought after area of New York City; however, the data will need further cleaning and scaling to give a more accurate representation.
+
+The second plot for a scatter plot will plot the "number_of_reviews" variable versus the "price" to see if we can define a correlation between quantity of review and price per night of the listing.
+
+```{r}
+
+# Ensure ggplot2 package is installed prior to executing code.
+
+require(ggplot2)
+
+# Create a scatter plot of "number_of_reviews" and "price" via ggplot2
+
+ggplot(raw_data, aes(number_of_reviews, price)) +
+  geom_point() +
+  ggtitle("Number of Reviews for NYC AirBnb Listings Versus Price per Night") +
+  xlab("Number of Reviews") +
+  ylab("Price (USD)")
+
+```
+
+From the scatter plot, we can see that there is a correlation between number of reviews and price per night for that listing. The larger the quantity of reviews for a listing, the cheaper the listing costs per night from the collected data. This makes sense in a reality check, because a cheaper listing is more likely to get a lot more visitors since it is more accessible to the population. Alternatively, it can be seen that expensive listings have much fewer reviews, because a smaller amount of people can afford to stay there. However, there are probably other factors that need additional review to see their impact as well (such as length of time of listing, average review, etc.). Therefore, additional cleaning/review of the data is needed to get a more complete picture.
+
+***
+
+## Objective 6:
+
+The R Markdown file will be uploaded to my Github account, as well as the original csv data set, for review.
+
+***
+
+## Objective 7:
+
+The address to my Github repository will be included in the Blackboard submission for Assignment 1.
+
+https://github.com/sspenc12/MIS-64060
+
+
