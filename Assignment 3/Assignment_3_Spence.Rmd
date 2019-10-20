@@ -1,0 +1,195 @@
+---
+title: "Assignment 3 - Flight Delay Problem"
+author: "Steve Spence"
+date: "10/17/2019"
+output: word_document
+---
+
+
+## Load Data Set and Libraries
+
+First, we will load all of the packages that will be required for this problem. Specifically, "ISLR", "caret", "dplyr", "e1071", and "pROC" will be loaded for this problem.
+
+```{r include=FALSE}
+
+# Require all the packages that will be used in this problem
+
+require(ISLR)
+require(caret)
+require(dplyr)
+require(e1071)
+require(pROC)
+require(tidyverse)
+require(gmodels)
+
+```
+
+Next, we will import the "FlightDelays" data set into the RStudio environment.
+
+```{r}
+
+# Import data set from BlackBoard into the RStudio environment
+
+FlightDelays <- read.csv("FlightDelays.csv")
+
+```
+
+## Data Structure
+
+A summary of the data set will be displayed to review the data set.
+
+```{r}
+
+# Investigate the structure of the data set
+
+str(FlightDelays)
+
+# Investigate the summary of the data set
+
+summary(FlightDelays)
+
+```
+
+We can see from the data set above, it appears that 428 out of 2,201 flights (Approximately 19.5%) are delayed historically. This can be compared against the final model at the end for a reality check.
+
+Given in the problem statement, we will only be using five predictors: "DAY_WEEK", "DEP_TIME", "ORIGIN", "DEST", and "CARRIER" along with the dependent variable "Flight.Status". Therefore, we will re-write the dataframe with these 6 variables.
+
+Additionally, we will need to convert all variables to factors for Naive Bayes model.
+
+```{r}
+
+# Isolate the 6 variables previously discussed
+
+FlightDelays <- FlightDelays[ , c(10, 1, 8, 4, 2, 13)]
+
+# Review the new structure of the dataset
+
+str(FlightDelays)
+
+```
+
+Now that we have the 6 varaibles in question, we must ensure all of them are converted to factors for proper use in the Naive Bayes algorithm. As shown above, "DAY_WEEK" and "CRS_DEP_TIME" are the two remaining variables that need to be converted to factors.
+
+Additionally, "CRS_DEP_TIME" will also need to be converted to a factor with 16 time ranges (as stated in the initial problem statement). These time ranges will stretch from "6:00am to 7:00am" departure time to the final time range of "9:00pm to 10:00pm". These will correlate to factor level 1 to 16, respectively.
+
+```{r}
+
+# Convert "DAY_WEEK" to a factor for Naives Bayes
+
+FlightDelays$DAY_WEEK <- as.factor(FlightDelays$DAY_WEEK)
+
+# Convert "CRS_DEP_TIME" to a factor with 16 time ranges and labels
+
+FlightDelays$CRS_DEP_TIME <- cut(FlightDelays$CRS_DEP_TIME, breaks = c(600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200))
+
+# Verify the new structure of the data set
+
+str(FlightDelays)
+
+```
+
+## Data Preprocessing
+
+To begin preprocessing data, we must split the data set into 60% training and 40% validation, per the problem description.
+
+```{r}
+
+# Set the seed for randomized functions
+
+set.seed(102019)
+
+# Split the data into 60% training data and 40% validation data
+
+FlightDelaysIndex <- createDataPartition(FlightDelays$DAY_WEEK, p=0.4, list = F)
+
+FlightDelaysValidation <- FlightDelays[FlightDelaysIndex,]
+
+FlightDelaysTrain <- FlightDelays[-FlightDelaysIndex,] 
+
+```
+
+## Counts and Proportion Table by Airport
+
+Assignment calls for a table containing a count and proportion of delayed flights by airport. For this, the "dplyr" package and summarise function will be used to return these values.
+
+```{r}
+
+# Summarise flight delay statisitics by airport
+
+FlightDelays %>%
+  group_by(Origin_Airport = ORIGIN, Flight_Status = Flight.Status) %>%
+  summarise(Count_of_Flights = n()) %>%
+  mutate(Proportion_for_Airport = 100*(Count_of_Flights / sum(Count_of_Flights)))
+
+```
+
+From this data table, we can see the total number of flights from each airport and the proportion of them that were delayed for each individual airport.
+
+"BWI" had the lowest number of flights during this time period, but it also had the highest percentage of them being delayed.
+
+
+## Create Naive Bayes Model
+
+Now that we have the training and validation data properly prepared, the Naive Bayes model can be created from the training data and then ran on the validation data.
+
+```{r}
+
+# Create Naive Bayes model from the training data set
+
+NB_Model <- naiveBayes(Flight.Status ~ ., data = FlightDelaysTrain)
+
+# Use Model on the validation data set to predict if flights will be delayed
+
+FlightDelaysValidation_Predicted <- predict(NB_Model, FlightDelaysValidation)
+
+```
+
+## Confusion Matrix and ROC for Validation Data
+
+A confusion matrix will be created to determine the accuracy of the model with varying statistics.
+
+```{r}
+
+# Create confusion matrix for the label outputs from the Naive Bayes model
+
+CrossTable(x = FlightDelaysValidation$Flight.Status, y = FlightDelaysValidation_Predicted, prop.chisq = FALSE)
+
+```
+
+From this confusion matrix, we can state that:
+
+The sensitivity (true positive rate) of the model is: 676/693 = 97.5%
+The specificity (true negative rate) of the model is: 17/190 = 9.0%
+
+Next, there will be the creation of the ROC cure and return the AUC value for the validation data on this model.
+
+Before the curve is plotted out, there must be another model ran with the raw probabilities listed.
+
+```{r}
+
+# Re-run the model to return the raw probabilities
+
+FlightDelaysValidation_Predicted2 <- predict(NB_Model, FlightDelaysValidation, type = "raw")
+
+# Return the first few values in the output table
+
+head(FlightDelaysValidation_Predicted2)
+
+```
+
+Next, the curves can now be plotted out.
+
+```{r}
+
+# Creating the ROC curve for the model
+
+roc(FlightDelaysValidation$Flight.Status, FlightDelaysValidation_Predicted2[,2])
+
+# Plot the ROC curve
+
+plot.roc(FlightDelaysValidation$Flight.Status, FlightDelaysValidation_Predicted2[,2])
+
+```
+
+From the AUC value of 0.6588, it can be stated that the model is better than chance guessing; however, the model still has some room for improvement to increase this AUC value closer and closer to nearly 1.0.
+
