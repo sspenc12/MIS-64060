@@ -1,0 +1,338 @@
+---
+title: "Universal Bank Class Problem"
+author: "Steve Spence"
+date: "10/3/2019"
+output: word_document
+---
+
+First, we will load all of the packages that will be required for this problem. Specifically, "ISLR", "caret", "dplyr", "FNN", and "gmodels" will be loaded for this problem.
+
+```{r}
+
+# Require all the packages that will be used in this problem
+
+require(ISLR)
+require(caret)
+require(dplyr)
+require(FNN)
+require(gmodels)
+
+```
+
+Next, we will import the "UniversalBank" data set into the RStudio environment.
+
+```{r}
+
+# Import data set from BlackBoard into the RStudio environment
+
+Bank <- read.csv("UniversalBank.csv")
+
+```
+
+A summary of the data set will be displayed to review the data set.
+
+```{r}
+
+# Investigate the structure of the data set
+
+str(Bank)
+
+# Investigate summary statistics for the data set
+
+summary(Bank)
+
+```
+
+We will remove the "ID" and "ZIP.Code" variables from the data set, as stated in problem statement.
+
+```{r}
+
+# Create a new data set with "ID" and "ZIP.Code" variables removed
+
+Bank_1 <- Bank[ ,-c(1,5)]
+
+# Review the structure of the data set
+
+str(Bank_1)
+
+```
+
+For categorical variables with more than two categories, we will need to create dummy variables. For this data set, the "Family" and "Education" variables would require dummy variables.
+
+```{r}
+
+# Convert "Education" and "Family" variables to categorical character variables
+
+Bank_1$Education <- as.factor(Bank_1$Education)
+Bank_1$Family <- as.factor(Bank_1$Family)
+
+# Create the dummy model for "Education" and "Family"
+
+dummy_model1 <- dummyVars(~Family + Education, data = Bank_1)
+
+# Add the dummy variables to "Bank_1" and remove the original "Education" and "Family" variables.
+
+dv <- as.data.frame(predict(dummy_model1, Bank_1))
+Bank_1 <- as.data.frame(c(Bank_1, dv))
+Bank_1 <- Bank_1[, -c(4,6)]
+
+```
+
+Per the problem statement, we will now split the data set into 60% training and 40% test data via the "createDataPartition" function.
+
+```{r}
+
+# Set the seed for randomized functions
+
+set.seed(100319)
+
+# Split the data into 60% training data and 40% test data
+
+Bank_1_Index <- createDataPartition(Bank_1$Age, p=0.4, list = F)
+
+Bank_1_Test <- Bank_1[Bank_1_Index,]
+
+Bank_1_Train <- Bank_1[-Bank_1_Index,] 
+
+```
+
+Next, we will have to normalize the training and test data sets via the "preProcess" function.
+
+```{r}
+
+# Create a copy of the data set for normalization
+
+Bank_1_Train_Norm <- Bank_1_Train
+Bank_1_Test_Norm <- Bank_1_Test
+
+# Use preProcess function to create a model for centering and scaling the data
+
+Norm_Values <- preProcess(Bank_1_Train[, c(1:5)], method = c("center", "scale"))
+
+# Replace the numeric variables with normalized and centered data
+
+Bank_1_Train_Norm[, c(1:5)] <- predict(Norm_Values, Bank_1_Train[, c(1:5)])
+Bank_1_Test_Norm[, c(1:5)] <- predict(Norm_Values, Bank_1_Test[, c(1:5)])
+
+```
+
+Now, the KNN function can be utilized.
+
+```{r}
+
+# Create the KNN model with K = 1 and only training and test data
+
+knn_model2 <- knn(train = Bank_1_Train_Norm[, -6], test = Bank_1_Test_Norm[, -6], 
+          cl = Bank_1_Train_Norm[, 6], k = 1, prob = TRUE)
+
+
+```
+
+```{r}
+
+head(Bank_1)
+
+```
+
+```{r}
+
+# Create the customer profile for the customer called out in question #1
+
+customer <- data.frame("Age" = 40,
+                       "Experience" = 10,
+                       "Income" = 84,
+                       "CCAvg" = 2,
+                       "Mortgage" = 0,
+                       "Securities.Account" = 0,
+                       "CD.Account" = 0,
+                       "Online" = 1,
+                       "CreditCard" = 1,
+                       "Family.1" = 0,
+                       "Family.2" = 1,
+                       "Family.3" = 0,
+                       "Family.4" = 0,
+                       "Education.1" = 0,
+                       "Education.2" = 1,
+                       "Education.3" = 0)
+
+# Perform the same preProcessing steps on the customer profile as the model was created on
+
+customer[, c(1:5)] <- predict(Norm_Values, customer[, c(1:5)])
+
+# Run the KNN model on the customer profile
+
+knn_model_customer <- knn(train = Bank_1_Train_Norm[, -6], test = customer, 
+          cl = Bank_1_Train_Norm[, 6], k = 1, prob = TRUE)
+
+# Return the value predicted by the model
+
+as.data.frame(knn_model_customer)
+
+```
+
+1. According to the KNN model prediction, the customer in question would not accept the personal loan.
+
+```{r}
+
+# ICreate a data frame with two columns - k, and accuracy
+
+accuracy.df <- data.frame(k = seq(1, 30, 1), accuracy = rep(0, 30))
+
+# Perform predictions on the values at different K values with KNN
+
+for(i in 1:30) {
+  knn.pred <- knn(train = Bank_1_Train_Norm[, -6], test = Bank_1_Test_Norm[, -6], 
+          cl = Bank_1_Train_Norm[, 6], k = i)
+  accuracy.df[i, 2] <- confusionMatrix(as.factor(knn.pred), as.factor(Bank_1_Test_Norm[, 6]))$overall[1] 
+}
+
+# Display the results in a data frame
+
+accuracy.df
+
+# Rough plot of the accuracies to see the trend in data
+
+plot(x = accuracy.df$k,y = accuracy.df$accuracy, main = "Plot of Accuracy Values vs K", xlab = "K Value", ylab = "Accuracy")
+```
+
+2. The choice of K that balances between overfitting and ignoring predictor information appears to be K = 1, which results in the highest accuracy reading at 0.965.
+
+
+```{r}
+
+# Create the KNN model with K = 1 and only training and test data
+
+knn_model2 <- knn(train = Bank_1_Train_Norm[, -6], test = Bank_1_Test_Norm[, -6], 
+          cl = Bank_1_Train_Norm[, 6], k = 1, prob = TRUE)
+
+# Confusion Matrix
+
+predicted <- as.factor(knn_model2)
+actual <- as.factor(Bank_1_Test_Norm[, 6])
+
+confusionMatrix(predicted, actual, positive = "1")
+
+```
+
+3. Confusion matrix of the KNN model using K = 1.
+
+```{r}
+
+# Run the KNN model on the customer profile with the K = 1 value
+
+knn_model_customer2 <- knn(train = Bank_1_Train_Norm[, -6], test = customer, 
+          cl = Bank_1_Train_Norm[, 6], k = 20, prob = TRUE)
+
+# Return the value predicted by the model
+
+as.data.frame(knn_model_customer2)
+
+```
+
+4. The customer is this case is still predicted to not accept the personal loan.
+
+Per the problem statement, we will now split the data set into 50% training data, 30% validation data, and 20% test data via the "createDataPartition" function.
+
+```{r}
+
+# Set the seed for randomized functions
+
+set.seed(100619)
+
+# Split the data into 50% training data, 30% validation data, and 20% test data
+
+Bank_2_Index <- createDataPartition(Bank_1$Age, p=0.2, list = F)
+
+Bank_2_Test <- Bank_1[Bank_2_Index,]
+
+Bank_2_Remaining <- Bank_1[-Bank_2_Index,] 
+
+Bank_2_Index <- createDataPartition(Bank_2_Remaining$Age, p=0.625, list = F)
+
+Bank_2_Train <- Bank_2_Remaining[Bank_2_Index,]
+
+Bank_2_Validation <- Bank_2_Train[-Bank_2_Index,] 
+
+```
+
+The newly divided data will now need to be normalized, as we did before.
+
+```{r}
+
+# Create a copy of the data sets for normalization
+
+Bank_2_Train_Norm <- Bank_2_Train
+Bank_2_Test_Norm <- Bank_2_Test
+Bank_2_Validation_Norm <- Bank_2_Validation
+
+# Use preProcess function to create a model for centering and scaling the data
+
+Norm_Values <- preProcess(Bank_2_Train[, c(1:5)], method = c("center", "scale"))
+
+# Replace the numeric variables with normalized and centered data
+
+Bank_2_Train_Norm[, c(1:5)] <- predict(Norm_Values, Bank_2_Train[, c(1:5)])
+Bank_2_Test_Norm[, c(1:5)] <- predict(Norm_Values, Bank_2_Test[, c(1:5)])
+Bank_2_Validation_Norm[, c(1:5)] <- predict(Norm_Values, Bank_2_Validation[, c(1:5)])
+
+```
+
+We will now re-run the KNN model with the newly divided data sets.
+
+5. The confusion matricies for the test data should have lower accuracy results, because it holds data that has not been seen by the model when training it. Therefore, the confusion matrix for training data should be more accurate, because it has already seen the data that it is predicting. Depending on exactly what metric we want to compare, there could be comparisons made about precision, recall, accuracy, specificity, etc.
+
+The first confusion matrix is for the "test" data:
+
+```{r}
+
+# Create the KNN model with K = 1
+
+knn_model_test <- knn(train = Bank_2_Train_Norm[, -6], test = Bank_2_Test_Norm[, -6], 
+          cl = Bank_2_Train_Norm[, 6], k = 1, prob = TRUE)
+
+# Confusion Matrix
+
+predicted_test <- as.factor(knn_model_test)
+actual_test <- as.factor(Bank_2_Test_Norm[, 6])
+
+confusionMatrix(predicted_test, actual_test, positive = "1")
+
+```
+
+The second confusion matrix is for the "validation" data:
+
+```{r}
+
+# Create the KNN model with K = 1
+
+knn_model_validation <- knn(train = Bank_2_Train_Norm[, -6], test = Bank_2_Validation_Norm[, -6], 
+          cl = Bank_2_Train_Norm[, 6], k = 1, prob = TRUE)
+
+# Confusion Matrix
+
+predicted_validation <- as.factor(knn_model_validation)
+actual_validation <- as.factor(Bank_2_Validation_Norm[, 6])
+
+confusionMatrix(predicted_validation, actual_validation, positive = "1")
+
+```
+
+The third confusion matrix is for the "train" data:
+
+```{r}
+
+# Create the KNN model with K = 1
+
+knn_model_train <- knn(train = Bank_2_Train_Norm[, -6], test = Bank_2_Train_Norm[, -6], 
+          cl = Bank_2_Train_Norm[, 6], k = 1, prob = TRUE)
+
+# Confusion Matrix
+
+predicted_train <- as.factor(knn_model_train)
+actual_train <- as.factor(Bank_2_Train_Norm[, 6])
+
+confusionMatrix(predicted_train, actual_train, positive = "1")
+
+```
+
+From the confusion matricies above, we can see that the predicted test data does have a lower accuracy reading than the training data. In this case, the validation data and training data both had an accuracy of 1.0; however, this is usually not the case with larger amounts of normalized data.
