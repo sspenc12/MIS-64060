@@ -1,0 +1,451 @@
+---
+title: "Midterm Exam"
+author: "Steve Spence"
+date: "10/24/2019"
+output: word_document
+---
+
+## Overview of Packages and Dataset
+
+The dataset on American College and University Rankings contains information on 1,302 American colleges and universities offering an undergraduate program. For each university, there are 17 measurements, including continuous measurements (such as tuition and graduation rate) and categorical measurements (such as location by state and whether it is a private or public school).
+
+First, we will load all of the packages that will be required for this problem. Specifically, "ISLR", "caret", "tidyverse", "factoextra", "ggplot2", "proxy", and "dplyr" will be loaded for this problem.
+
+```{r include=FALSE}
+
+# Require all the packages that will be used in this problem
+
+require(ISLR)
+require(caret)
+require(dplyr)
+require(tidyverse)
+require(factoextra)
+require(ggplot2)
+require(proxy)
+
+```
+
+Next, we will import the "university" data set into the RStudio environment.
+
+```{r}
+
+# Import data set from BlackBoard into the RStudio environment
+
+university <- read.csv("university.csv")
+
+```
+
+A review of the structure of the data set will be displayed to review the data set.
+
+```{r}
+
+# Investigate the structure of the data set
+
+str(university)
+
+```
+
+From the structure of the dataset, we can see that the data was imported with 2 variables as factors, 1 as numeric, and the remaining 17 as integer. The variable "Public..1..Private..2." will need to be converted to a factor with two levels.
+
+```{r}
+
+# Convert the variable "Public..1..Private..2." to a factor with two levels
+
+university$Public..1...Private..2. <- as.factor(university$Public..1...Private..2.)
+
+# Return the structure of the converted variable to confirm
+
+str(university$Public..1...Private..2.)
+
+```
+
+The next chunk of code will return a summary of all the variables in the data set.
+
+```{r}
+
+# Investigate the summary of the data set
+
+summary(university)
+
+```
+
+From this summary, it can be concluded that 17 variables contained missing values, designated as "NA's". The first part of the assignment will address this issue.
+
+## Midterm Task 1
+
+1.	Remove All Records With Missing Measurements from the Dataset.
+
+The first task of the assignment is to remove these missing values. We will do this by utlizing the "complete.cases" function from base R.
+
+```{r}
+
+# Remove all variables with missing values in the dataset
+
+university_na_removed <- university[complete.cases(university), ]
+
+# Return summary of the dataset to confirm all NA's have been removed
+
+summary(university_na_removed)
+
+```
+
+After executing this command, there are a total of 471 observations remaining. Therefore, 830 records were removed for having at least 1 missing value.
+
+## Midterm Task 2
+
+2.	For All the Continuous Measurements, Run K-Means clustering. Make sure to normalize the measurements.  How many clusters seem reasonable for describing these data? What was your optimal K?
+
+Per the outlined task, the continuous variables will need to be normalized before we place them into the K-means clustering algorithm.
+
+```{r}
+
+# Create a new variable "university_scaled" to perform the normalization function on
+
+university_scaled <- university_na_removed
+
+# Scale the numeric variables in the dataset
+
+university_scaled[ , c(4:20)] <- scale(university_scaled[ , c(4:20)])
+
+```
+
+Now that the numeric variables are normalized, we will run the k-means clustering algorithm; however, the optimal number of clusters will need to be determined first. This will be completed via the "elbow method", which looks at the within-cluster sum square (WSS).
+
+```{r}
+
+# Determine the optimal number of clusters for the dataset
+
+fviz_nbclust(university_scaled[ , c(4:20)], kmeans, method = "wss")
+
+```
+
+From this method, it appears that a k value of 4 will be the optimal value to use. Therefore, the kmeans algorithm will now be run with this value.
+
+```{r}
+
+# Set the seed for randomized functions
+
+set.seed(102419)
+
+# k-means algorithm with the numerical variables
+
+km1 <- kmeans(university_scaled[ , c(4:20)], centers = 4, nstart = 25)
+
+```
+
+## Midterm Task 3
+
+3.	Compare the summary statistics for each cluster and describe each cluster in this context (e.g., “Universities with high tuition, low acceptance rate...”).
+
+To get the insights from the k-means algorithm, we will need to look at the centers, sizes, and compare the statistics for insights. This will utilize the "fviz_cluster" function along with others summary views.
+
+```{r}
+
+# Return the centroids for the variables
+
+km1$centers
+
+# Return the size of each cluster
+
+km1$size
+
+# Visualize the k-means output
+
+fviz_cluster(km1, data = university_scaled[ , c(4:20)])
+
+```
+
+Insights for Cluster 1:
+
+These Universities have fewer applications, acceptabed students, and enrolled students than the other clusters. There are not as many students from the top of their classes, and the tuition rates are lower than the other university clusters. Additionally, their faculty does not have as many with phDs, and the graduation rate is lower than all the other clusters.
+
+Insights for Cluster 2:
+
+Universities with higher number of applications, accepted students, and enrolled students. Additionally, these universities have the lower tuition and room/board, as well as a lower graduation rate than average.
+
+Insights for Cluster 3:
+
+Universities with a lot of applications, but lower acceptance and enrollment rate. These Universities have more students that were top of their class, as well as higher tuition, room, and board costs. The faculity has a lot more professors with phDs, as well as a lower student-to-faculty ratio. Lastly, the graduation rate at these universities has a higher graduation rate.
+
+Insights for Cluster 4:
+
+These Universities have fewer applications, accepted students, and enrolled students. Additionally, all their other metrics are found around the mean for tuition, room, board, graduation rate, etc.
+
+
+## Midterm Task 4
+
+4.	Use the categorical measurements that were not used in the analysis (State and Private/Public) to characterize the different clusters. Is there any relationship between the clusters and the categorical information?
+
+The gain these insights into the data, the assigned clusters will have to be bound to the datafame. Then ggplot can be used to visual all the clusters with these categorical variables to gain insights.
+
+```{r}
+
+# The assigned cluster group will be bound to the dataframe
+
+university_clustered <- cbind(university_scaled, km1$cluster)
+
+```
+
+Next, the chart of clusters will be compared to the categorical variables that were left out (State and Private/Public) with ggplot2.
+
+```{r}
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+ggplot(data = university_clustered) +
+  geom_bar(mapping = aes(university_clustered$Public..1...Private..2.), 
+           col = "black",
+           fill = "blue4") +
+  facet_wrap(vars(university_clustered$`km1$cluster`)) +
+  labs(title = "Count of Universities by Assigned Cluster - Public vs Private") +
+  labs(x = "Public (1) and Private (2)", y = "Count of Universities") +
+  theme_light()
+  
+```
+
+From these charts, it can be seen that clusters 3 and 4 mainly contain private universities, cluster 2 is mainly public universities, and cluster 1 is a fairly equal split between the two.
+
+The next charts will look at ways to review the state variable for additional insights.
+
+```{r}
+
+# Convert the assigned cluster values to a factor with four levels for plotting
+
+university_clustered$`km1$cluster` <- as.factor(university_clustered$`km1$cluster`)
+
+str(university_clustered$`km1$cluster`)
+
+```
+
+The first chart for states will look at percentage of universities in a cluster by state.
+
+```{r}
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+ggplot(data = university_clustered) +
+  geom_bar(mapping = aes(State, fill = `km1$cluster`), position = "fill") +
+  labs(title = "Percentage of Universities in Assigned Clusters by State") +
+  labs(x = "State", y = "Percentage of Universities") +
+  theme_light() +
+  theme(axis.text.x = element_text(size = 10, angle = 90, hjust = 0, vjust = .60), legend.position="top") +
+  scale_fill_brewer(palette = "Set4") +
+  guides(fill = guide_legend(title = NULL))
+
+```
+
+The additional charts below will also break it down into individual charts for each cluster to view the count of universities by state to get another view of the breakdown.
+
+```{r}
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+university_clustered_1 <- subset(university_clustered, km1$cluster == 1)
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+ggplot(data = university_clustered_1, aes(x = State)) +
+  geom_bar(col = "black",
+           fill = "lightblue") +
+  labs(title = "Count of Universities in Cluster 1 by State") +
+  labs(x = "State", y = "Count of Universities in Cluster 1") +
+  theme_light() +
+  theme(axis.text.x = element_text(size = 10, angle = 90, hjust = 0, vjust = .60))
+  
+```
+
+Top 5 States by count of universities in cluster 1:
+
+1. North Carolina
+2. Texas
+3. Iowa
+4. Missouri
+5. New York
+
+```{r}
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+university_clustered_2 <- subset(university_clustered, km1$cluster == 2)
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+ggplot(data = university_clustered_2, aes(x = State)) +
+  geom_bar(col = "black",
+           fill = "lightblue") +
+  labs(title = "Count of Universities in Cluster 2 by State") +
+  labs(x = "State", y = "Count of Universities in Cluster 2") +
+  theme_light() +
+  theme(axis.text.x = element_text(size = 10, angle = 90, hjust = 0, vjust = .60))
+  
+```
+
+Top 5 States by count of universities in cluster 2:
+
+1. North Carolina
+2. Ohio
+3. Texas
+4(T). Massachusetts
+4(T). Pennsylvania
+4(T). Virginia
+
+```{r}
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+university_clustered_3 <- subset(university_clustered, km1$cluster == 3)
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+ggplot(data = university_clustered_3, aes(x = State)) +
+  geom_bar(col = "black",
+           fill = "lightblue") +
+  labs(title = "Count of Universities in Cluster 3 by State") +
+  labs(x = "State", y = "Count of Universities in Cluster 3") +
+  theme_light() +
+  theme(axis.text.x = element_text(size = 10, angle = 90, hjust = 0, vjust = .60))
+  
+```
+
+Top 5 States by count of universities in cluster 3:
+
+1. New York
+2. Massachusetts
+3. Pennsylvannia
+4. California
+5. Connecticut
+
+```{r}
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+university_clustered_4 <- subset(university_clustered, km1$cluster == 4)
+
+# Create plot private and public universities, faceted by their assgined cluster.
+
+ggplot(data = university_clustered_4, aes(x = State)) +
+  geom_bar(col = "black",
+           fill = "lightblue") +
+  labs(title = "Count of Universities in Cluster 4 by State") +
+  labs(x = "State", y = "Count of Universities in Cluster 4") +
+  theme_light() +
+  theme(axis.text.x = element_text(size = 10, angle = 90, hjust = 0, vjust = .60))
+  
+```
+
+Top 5 States by count of universities in cluster 4:
+
+1. Pennsylvania
+2. New York
+3. Ohio
+4. Indiana
+5. Illinois
+
+
+## Midterm Task 5
+
+5.	What other external information can explain the contents of some or all of these clusters?
+
+Other external domain knowledge of the university environment can explain some of the cluster groupings:
+
+
+Cluster 3 contains mostly private universities with high achieving students, low acceptance rates, and high tuition rates in New York, Massachusetts, Pennsylvannia, California, Connecticut. This aligns with this cluster containing ivy league schools (MIT, Harvard, Stanford, UPenn, NYU, etc.) and other well-known top universities. They typically get a lot of applications and are very selective with their enrollment of students. These schools also have very prestigeous staff members and have higher tuition rates as a result.
+
+Cluster 2 contains mainly public universities, which typically get more students applying and enrolling to them. Additionally, public schools are typically less expensive. The opposite is true for Cluster 4. Cluster 4 is mainly composed of private universities, which are more expensive.
+
+In general, private schools are more expensive than public schools. Schools that have a higher percent of faculty with phDs, and lower ratio of student to faculty, will be more expensive and have a higher graduation rate. More prestigeous schools will have higher number of students being top in their high school classes, which relates to higher graduation rates. Public schools typically have higher number of applications and higher acceptance rates.
+
+
+## Midterm Task 6
+
+6.	Consider Tufts University, which is missing some information. Compute the Euclidean distance of this record from each of the clusters that you found above (using only the measurements that you have). Which cluster is it closest to? Impute the missing values for Tufts by taking the average of the cluster on those measurements.
+
+First, the record for Tufts University will be selected from the data frame.
+
+```{r}
+
+# Select the Tufts University record from the original data frame
+
+university[ , c(4:20)] <- scale(university[ , c(4:20)])
+
+university_tufts <- subset(university, College.Name == "Tufts University")
+
+# Return the record for Tufts University
+
+university_tufts
+
+```
+
+From reviewing the record, it appears the only missing value on this record is "X..PT.undergrad"
+
+Next, the Euclidean distance can be computed against the four cluster values. Per the prompt instructions, the "X..PT.undergrad" variable will be left out for the calculation purposes.
+
+```{r}
+
+# Calculate the Euclidean distance of Tufts University's record versus Cluster 1
+
+dist(rbind(university_tufts[ , c(4:9,11:20)], km1$centers[1, -7]))
+
+# Calculate the Euclidean distance of Tufts University's record versus Cluster 2
+
+dist(rbind(university_tufts[ , c(4:9,11:20)], km1$centers[2, -7]))
+
+# Calculate the Euclidean distance of Tufts University's record versus Cluster 3
+
+dist(rbind(university_tufts[ , c(4:9,11:20)], km1$centers[3, -7]))
+
+# Calculate the Euclidean distance of Tufts University's record versus Cluster 4
+
+dist(rbind(university_tufts[ , c(4:9,11:20)], km1$centers[4, -7]))
+
+```
+
+Based on the Euclidean distance results, Cluster 3 is the closest cluster for Tufts University. Per the prompt instructions, the value for "X..PT.undergrad" will be imputed for this record.
+
+```{r}
+
+# Impute the record for "X..PT.undergrad" using the value from Cluster 3
+
+university_tufts[ , 10] <- km1$centers[3, 7]
+
+# Return the record to verify there are no more missing values
+
+university_tufts
+
+```
+
+After reviewing the record for Tuft University, it has been confirmed that the missing value for "X..PT.undergrad" has been imputed with the value of the centroid for Cluster 3, which is -0.3825922. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
