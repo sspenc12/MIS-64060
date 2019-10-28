@@ -12,3 +12,7 @@ The purpose of this assignment was to further reinforce the topics of KNN classi
 Assignment 3:
 
 The purpose of this assignment was to utilize the Naive Bayes algorithm to predict if flights from several different airports are likely to be delayed. This involved selecting variables of interest, converting them to factors of different levels, and pre-processing the data for the model. The results were reviewed via AUC values, ROC curves, confusion matrix and related sensitivity and specificity values for the model.
+
+Assignment 4:
+
+The purpose of this assignment was to utilize the K-means clustering method on university data. The data included variables on acceptance rates, enrollment rates, tuition, graduation rate, etc. The elbow method was used to determine the proper number of clusters to be used, and then the clusters were analyzed to determine the high-level groupings of these universities. Lastly, an additional record was analyzed to determine the minimum Euclidean distance between clusters to determine where it would be classified and impute missing values from that cluster.
