@@ -16,3 +16,7 @@ The purpose of this assignment was to utilize the Naive Bayes algorithm to predi
 Assignment 4:
 
 The purpose of this assignment was to utilize the K-means clustering method on university data. The data included variables on acceptance rates, enrollment rates, tuition, graduation rate, etc. The elbow method was used to determine the proper number of clusters to be used, and then the clusters were analyzed to determine the high-level groupings of these universities. Lastly, an additional record was analyzed to determine the minimum Euclidean distance between clusters to determine where it would be classified and impute missing values from that cluster.
+
+Assignment 5:
+
+The purpose of this assignment was to review hierarchical clustering, specifically the AGNES methodology. The different linkage methods were used (single, complete, ward, etc.) to determine the best method for a cereal review data set. Next, the appropriate number of clusters was determined via the elbow and silhouette methods. Then the stability of the clusters were reviewed by taking a partition of the data and re-assigning clusters manually. Lastly, real-world situations for normalizing and not normalizing data was discussed.
