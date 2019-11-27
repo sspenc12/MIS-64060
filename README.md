@@ -20,3 +20,7 @@ The purpose of this assignment was to utilize the K-means clustering method on u
 Assignment 5:
 
 The purpose of this assignment was to review hierarchical clustering, specifically the AGNES methodology. The different linkage methods were used (single, complete, ward, etc.) to determine the best method for a cereal review data set. Next, the appropriate number of clusters was determined via the elbow and silhouette methods. Then the stability of the clusters were reviewed by taking a partition of the data and re-assigning clusters manually. Lastly, real-world situations for normalizing and not normalizing data was discussed.
+
+Final Exam:
+
+The objective of this assignment was to find an optimal market segmentation for the India dish soap market, based on data collected from a marketing company. K-means clustering was utilized and analyzed for proper number of clusters. Next, the clusters were analyzed for purchasing behaviors, brand loyalty, and demographic information. Once that information was gathered, a random forest classification model was created to target specific clusters for a promotional campaign. Findings and conclusions were to be presented in a manner appropriate for a short, concise meeting with upper management.
